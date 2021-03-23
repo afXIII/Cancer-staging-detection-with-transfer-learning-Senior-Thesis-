@@ -10,7 +10,7 @@ cluster.cs.earlham.edu:/eccs/home/afarah18/488/markIII/histopathologic-cancer-de
 
 Link to Paper: https://portfolios.cs.earlham.edu/wp-content/uploads/2021/03/paper488.pdf
 
-Link to Video:
+Link to Video: https://www.youtube.com/watch?v=G01y0ZLKST4
 
 Link to Poster: https://portfolios.cs.earlham.edu/wp-content/uploads/2021/03/poster.pdf
 
