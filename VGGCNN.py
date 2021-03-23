@@ -10,19 +10,19 @@ from keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
 from keras.models import Sequential
 from keras import optimizers
 from tensorflow.keras.callbacks import ReduceLROnPlateau, ModelCheckpoint
+from keras.applications.vgg16 import VGG16, preprocess_input
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
+
 
 #commonly used variables
 batch_size = 10
 image_size = (96,96)
 epochs = 10
 
-
 #loading csv into dataframe
 labels = pd.read_csv("histopathologic-cancer-detection/train_labels.csv")
-
 
 #Creating the training and valiation sets
 labels_neg = labels[labels['label'] == 0].sample(80000, random_state=3)
@@ -34,6 +34,7 @@ val_pos = labels_pos[:8000]
 labels_neg = pd.concat([labels_neg, val_neg]).drop_duplicates(keep=False)
 labels_pos = pd.concat([labels_pos, val_pos]).drop_duplicates(keep=False)
 
+
 train_labels = pd.concat([labels_neg, labels_pos])
 val_labels = pd.concat([val_neg, val_pos])
 
@@ -42,7 +43,6 @@ def append_ext(fn):
     return fn+".tif"
 train_labels["id"] = train_labels["id"].apply(append_ext)
 val_labels["id"] = val_labels["id"].apply(append_ext)
-
 
 #datagenerators and image augmentation
 train_datagen = ImageDataGenerator(rescale=1./255, zoom_range=0.3, rotation_range=50,
@@ -55,59 +55,51 @@ val_datagen = ImageDataGenerator(rescale=1./255)
 train_generator = train_datagen.flow_from_dataframe(dataframe=train_labels, directory="histopathologic-cancer-detection/train", x_col="id", y_col="label", class_mode="raw", target_size=image_size, batch_size=batch_size)
 val_generator = val_datagen.flow_from_dataframe(dataframe=val_labels, directory="histopathologic-cancer-detection/train", x_col="id", y_col="label", class_mode="raw", target_size=image_size, batch_size=batch_size)
 
+#downloading the imagenet pre trained model on VGG16
+vgg_model = VGG16(include_top = False,
+                    input_shape = (96,96,3),
+                    weights = 'imagenet')
+
+# Freeze the layers 
+for layer in vgg_model.layers[:-7]:
+    layer.trainable = False
+
 #Creating the model
 model = Sequential()
 
-model.add(Conv2D(32, kernel_size=(3, 3), activation = 'relu', input_shape = (96, 96, 3)))
-model.add(Conv2D(32, kernel_size=(3, 3), activation = 'relu'))
-model.add(Conv2D(32, kernel_size=(3, 3), activation = 'relu'))
-model.add(MaxPooling2D(pool_size = (2,2))) 
-model.add(Dropout(0.3))
-
-model.add(Conv2D(64, kernel_size=(3, 3), activation ='relu'))
-model.add(Conv2D(64, kernel_size=(3, 3), activation ='relu'))
-model.add(Conv2D(64, kernel_size=(3, 3), activation ='relu'))
-model.add(MaxPooling2D(pool_size = (2,2)))
-model.add(Dropout(0.3))
-
-model.add(Conv2D(128, kernel_size=(3, 3), activation ='relu'))
-model.add(Conv2D(128, kernel_size=(3, 3), activation ='relu'))
-model.add(Conv2D(128, kernel_size=(3, 3), activation ='relu'))
-model.add(MaxPooling2D(pool_size = (2,2)))
-model.add(Dropout(0.3))
-
+model.add(vgg_model)
 model.add(Flatten())
-model.add(Dense(512, activation = "relu"))
+model.add(Dense(512, activation="relu"))
 model.add(Dropout(0.5))
-model.add(Dense(1, activation = "sigmoid"))
-
-model.compile(loss='binary_crossentropy',
-			  optimizer=optimizers.Adam(lr=1e-4),
-              metrics=['accuracy'])
+model.add(Dense(1, activation="sigmoid"))
 
 model.summary()
 
+model.compile(loss='binary_crossentropy',
+              optimizer=optimizers.Adam(lr=1e-4),
+              metrics=['accuracy'])
 
-#saving the model at best val accuracy
-filepath = "model.h5"
+#saving the model with best val accuracy
+filepath = "modelvgg.h5"
 checkpoint = ModelCheckpoint(filepath, monitor='val_accuracy', verbose=1, 
                              save_best_only=True, mode='max')
-#reducing the learning rate if val accuracy drops
+
+#reduce learning rate if val accuracy drops
 reduce_lr = ReduceLROnPlateau(monitor='val_accuracy', factor=0.5, patience=2, 
                                    verbose=1, mode='max', min_lr=0.00001)
-                                                         
+                              
+                              
 callbacks_list = [checkpoint, reduce_lr]
 
-#training
-history = model.fit(train_generator, batch_size = batch_size, 
-                    validation_data=val_generator,
-                    validation_steps=50,
-                    epochs=epochs, verbose=1,
-                    callbacks = callbacks_list)
+#Training
+history = model.fit(train_generator, batch_size = batch_size, epochs=epochs,
+                              validation_data=val_generator, validation_steps=50, 
+                              verbose=1,
+                              callbacks = callbacks_list)
 
 #graphing the accuracy and loss values
 f, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
-t = f.suptitle('Basic CNN Performance', fontsize=12)
+t = f.suptitle('Transfer Learning Performance', fontsize=12)
 f.subplots_adjust(top=0.85, wspace=0.3)
 
 epoch_list = list(range(1,epochs+1))
@@ -126,4 +118,4 @@ ax2.set_ylabel('Loss Value')
 ax2.set_xlabel('Epoch')
 ax2.set_title('Loss')
 l2 = ax2.legend(loc="best")
-plt.savefig('plotmain.png')
+plt.savefig('plotvggfrozen.png')
