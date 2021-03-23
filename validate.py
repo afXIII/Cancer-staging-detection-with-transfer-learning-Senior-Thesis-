@@ -1,3 +1,6 @@
+### Ali Farahmand
+### CS 488 Senior Capstone
+
 #imports
 import pandas as pd
 from tensorflow import keras
