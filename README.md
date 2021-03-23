@@ -8,11 +8,11 @@ Dataset is also available at:
 cluster.cs.earlham.edu:/eccs/home/afarah18/488/markIII/histopathologic-cancer-detection
 ```
 
-Link to paper: 
+Link to Paper: https://portfolios.cs.earlham.edu/wp-content/uploads/2021/03/paper488.pdf
 
 Link to Video:
 
-Link to Poster:
+Link to Poster: https://portfolios.cs.earlham.edu/wp-content/uploads/2021/03/poster.pdf
 
 ## Software architecture diagram
 ![Software architecture diagram](https://portfolios.cs.earlham.edu/wp-content/uploads/2021/03/Screen-Shot-2021-03-22-at-11.42.40-PM.png)
